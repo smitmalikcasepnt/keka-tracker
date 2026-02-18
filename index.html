@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keka Work Hours Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #181a24;
+    --card-border: #252836;
+    --accent: #6c5ce7;
+    --accent-glow: rgba(108, 92, 231, 0.25);
+    --green: #00cec9;
+    --green-glow: rgba(0, 206, 201, 0.2);
+    --orange: #fdcb6e;
+    --red: #ff6b6b;
+    --text: #e8e8ee;
+    --text-dim: #7f8192;
+    --text-muted: #4a4c5e;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%;
+    right: -10%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 860px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  .header p {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.3s;
+  }
+
+  .card:hover { border-color: #353850; }
+
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .input-card { grid-column: 1 / -1; }
+
+  textarea {
+    width: 100%;
+    height: 140px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  textarea::placeholder { color: var(--text-muted); }
+  textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* removed buttons */
+
+  /* Pie Chart */
+  .pie-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+  }
+
+  .pie-container {
+    position: relative;
+    width: 180px;
+    height: 180px;
+  }
+
+  .pie-container svg { transform: rotate(-90deg); }
+
+  .pie-bg {
+    fill: none;
+    stroke: #252836;
+    stroke-width: 16;
+  }
+
+  .pie-fill {
+    fill: none;
+    stroke-width: 16;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
+
+  .pie-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pie-percent {
+    font-family: 'Space Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .pie-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Stats */
+  .stats-list { display: flex; flex-direction: column; gap: 16px; justify-content: center; min-height: 220px; }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .stat-icon.clock { background: rgba(108, 92, 231, 0.15); }
+  .stat-icon.remaining { background: rgba(253, 203, 110, 0.12); }
+  .stat-icon.leave { background: rgba(0, 206, 201, 0.12); }
+  .stat-icon.status { background: rgba(255, 107, 107, 0.12); }
+
+  .stat-info { flex: 1; }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+
+  .stat-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Punch log */
+  .punch-card { grid-column: 1 / -1; }
+
+  .punch-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .punch-pair {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+    flex: 1;
+    max-width: 200px;
+  }
+
+  .punch-pair .pair-head {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .punch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot.in { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+  .dot.out { background: var(--red); }
+
+  .punch-dur {
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 3px;
+    padding-top: 3px;
+    border-top: 1px dashed var(--card-border);
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .empty-state span { font-size: 32px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>⏱ Keka Tracker</h1>
+    <p>Paste your punch logs · Track your 8h 30m workday</p>
+  </div>
+
+  <div class="grid">
+    <!-- Input -->
+    <div class="card input-card">
+      <div class="card-label">📋 Paste Punch Entries</div>
+      <textarea id="entries" oninput="calculate()" placeholder="Paste your Keka punch entries here, e.g.:
+9:53:15 AM
+9:55:42 AM
+12:54:36 PM
+1:17:25 PM
+..."></textarea>
+
+      <div class="hint">Each line should have one timestamp (e.g. <b>9:53:15 AM</b>). Odd entries = punch in, even = punch out. If odd number of entries, the last punch-in is treated as ongoing.</div>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="card" id="pieCard">
+      <div class="card-label">📊 Completion</div>
+      <div class="pie-wrapper" id="pieArea">
+        <div class="empty-state"><span>🥧</span>Pie chart will appear here</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card" id="statsCard">
+      <div class="card-label">📈 Summary</div>
+      <div id="statsArea">
+        <div class="empty-state"><span>📌</span>Stats will appear here</div>
+      </div>
+    </div>
+
+    <!-- Punch Timeline -->
+    <div class="card punch-card" id="punchCard" style="display:none;">
+      <div class="card-label">🕐 Punch Sessions</div>
+      <div class="punch-timeline" id="punchTimeline"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TARGET_MINUTES = 8 * 60 + 30; // 8h 30m
+
+function parseTime(str) {
+  str = str.trim();
+  if (!str) return null;
+  // Match patterns like "9:53:15 AM", "12:54:36 PM", "9:53 AM", "14:30"
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return null;
+  let [, h, m, s, period] = match;
+  h = parseInt(h); m = parseInt(m); s = parseInt(s || 0);
+  if (period) {
+    period = period.toUpperCase();
+    if (period === 'AM' && h === 12) h = 0;
+    if (period === 'PM' && h !== 12) h += 12;
+  }
+  return h * 3600 + m * 60 + s;
+}
+
+function secToHM(sec) {
+  const neg = sec < 0;
+  sec = Math.abs(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  return (neg ? '-' : '') + h + 'h ' + String(m).padStart(2, '0') + 'm';
+}
+
+function secToTime12(sec) {
+  let h = Math.floor(sec / 3600);
+  let m = Math.floor((sec % 3600) / 60);
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + String(m).padStart(2, '0') + ' ' + period;
+}
+
+function fmtTimeStr(sec) {
+  let h = Math.floor(sec / 3600);
+  let m = Math.floor((sec % 3600) / 60);
+  let s = sec % 60;
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + ' ' + period;
+}
+
+function calculate() {
+  const raw = document.getElementById('entries').value.trim();
+  if (!raw) { clearAll(); return; }
+
+  const lines = raw.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const times = lines.map(parseTime).filter(t => t !== null);
+
+  if (times.length < 1) { clearAll(); return; }
+
+  // Sort timestamps
+  times.sort((a, b) => a - b);
+
+  // Build pairs
+  const pairs = [];
+  let completedWork = 0; // from fully closed pairs
+  const now = new Date();
+  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  let ongoing = false;
+  let ongoingStart = 0;
+
+  for (let i = 0; i < times.length; i += 2) {
+    const inTime = times[i];
+    let outTime = times[i + 1];
+    if (outTime !== undefined) {
+      pairs.push({ in: inTime, out: outTime, dur: outTime - inTime });
+      completedWork += outTime - inTime;
+    } else {
+      // Ongoing session (odd last entry)
+      ongoing = true;
+      ongoingStart = inTime;
+      const elapsed = nowSec - inTime;
+      pairs.push({ in: inTime, out: null, dur: elapsed > 0 ? elapsed : 0 });
+    }
+  }
+
+  // Total worked includes ongoing elapsed time for display
+  const ongoingElapsed = ongoing ? Math.max(nowSec - ongoingStart, 0) : 0;
+  const totalWorked = completedWork + ongoingElapsed;
+
+  const targetSec = TARGET_MINUTES * 60;
+  const percent = Math.min((totalWorked / targetSec) * 100, 100);
+  const remaining = targetSec - totalWorked;
+
+  // Calculate leave time from punch data (not wall clock)
+  // If ongoing: leave = last punch-in + (target - completed work from closed pairs)
+  // If all closed: they need to punch in, so leave = hypothetical next punch-in + remaining
+  let leaveTime = null;
+  const remainingFromCompleted = targetSec - completedWork;
+  if (ongoing && remainingFromCompleted > 0) {
+    leaveTime = ongoingStart + remainingFromCompleted;
+  } else if (!ongoing && remaining > 0) {
+    // Not punched in — show leave time if they punch in right now
+    leaveTime = nowSec + remaining;
+  }
+
+  // Determine status
+  let statusText, statusColor;
+  if (percent >= 100) {
+    statusText = '✅ Complete! You can leave.';
+    statusColor = 'var(--green)';
+  } else if (percent >= 80) {
+    statusText = '🔥 Almost there!';
+    statusColor = 'var(--orange)';
+  } else if (percent >= 50) {
+    statusText = '⚡ Over halfway';
+    statusColor = 'var(--accent)';
+  } else {
+    statusText = '🚀 Keep going!';
+    statusColor = 'var(--text-dim)';
+  }
+
+  // Pie color
+  let pieColor;
+  if (percent >= 100) pieColor = 'var(--green)';
+  else if (percent >= 75) pieColor = 'var(--accent)';
+  else if (percent >= 50) pieColor = 'var(--orange)';
+  else pieColor = 'var(--red)';
+
+  // Render Pie
+  const circumference = 2 * Math.PI * 72; // r=72
+  const offset = circumference - (percent / 100) * circumference;
+
+  document.getElementById('pieArea').innerHTML = `
+    <div class="pie-container">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <circle class="pie-bg" cx="90" cy="90" r="72"/>
+        <circle class="pie-fill" cx="90" cy="90" r="72"
+          stroke="${pieColor}"
+          stroke-dasharray="${circumference}"
+          stroke-dashoffset="${offset}"
+        />
+      </svg>
+      <div class="pie-center">
+        <div class="pie-percent" style="color:${pieColor}">${percent.toFixed(1)}%</div>
+        <div class="pie-sub">of 8h 30m</div>
+      </div>
+    </div>
+  `;
+
+  // Render Stats
+  const leaveStr = remaining <= 0 ? 'Now! 🎉' : (leaveTime && leaveTime < 86400 ? secToTime12(leaveTime) : '—');
+  const leaveNote = remaining > 0 && !ongoing ? ' (if you punch in now)' : '';
+
+  document.getElementById('statsArea').innerHTML = `
+    <div class="stats-list">
+      <div class="stat-item">
+        <div class="stat-icon clock">⏱</div>
+        <div class="stat-info">
+          <div class="stat-label">Time Completed</div>
+          <div class="stat-value" style="color:var(--accent)">${secToHM(totalWorked)}</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon remaining">⏳</div>
+        <div class="stat-info">
+          <div class="stat-label">Remaining</div>
+          <div class="stat-value" style="color:${remaining <= 0 ? 'var(--green)' : 'var(--orange)'}">${remaining <= 0 ? 'Done!' : secToHM(remaining)}</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon leave">🚪</div>
+        <div class="stat-info">
+          <div class="stat-label">You Can Leave At</div>
+          <div class="stat-value" style="color:var(--green)">${leaveStr}${leaveNote}</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon status">📍</div>
+        <div class="stat-info">
+          <div class="stat-label">Status</div>
+          <div class="stat-value" style="color:${statusColor}">${statusText}</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Render Punch Timeline
+  const punchCard = document.getElementById('punchCard');
+  const punchTimeline = document.getElementById('punchTimeline');
+  punchCard.style.display = 'block';
+  punchTimeline.innerHTML = '';
+
+  pairs.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'punch-pair';
+    div.innerHTML = `
+      <div class="pair-head">Session ${i + 1}</div>
+      <div class="punch-row"><span class="dot in"></span> ${fmtTimeStr(p.in)}</div>
+      <div class="punch-row"><span class="dot out"></span> ${p.out !== null ? fmtTimeStr(p.out) : '<span style="color:var(--green)">Ongoing…</span>'}</div>
+      <div class="punch-dur">Duration: ${secToHM(p.dur)}</div>
+    `;
+    punchTimeline.appendChild(div);
+  });
+}
+
+function clearAll() {
+  document.getElementById('entries').value = '';
+  document.getElementById('pieArea').innerHTML = '<div class="empty-state"><span>🥧</span>Pie chart will appear here</div>';
+  document.getElementById('statsArea').innerHTML = '<div class="empty-state"><span>📌</span>Stats will appear here</div>';
+  document.getElementById('punchCard').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
