@@ -288,6 +288,92 @@
     border-top: 1px dashed var(--card-border);
   }
 
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: linear-gradient(135deg, #1a1c2e, #252840);
+    border: 1px solid var(--green);
+    border-radius: 14px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 8px 32px rgba(0, 206, 201, 0.25), 0 0 60px rgba(0, 206, 201, 0.08);
+    z-index: 1000;
+    transform: translateX(calc(100% + 40px));
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s;
+    max-width: 380px;
+  }
+
+  .toast.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .toast-icon {
+    font-size: 32px;
+    animation: bounce 0.6s ease infinite alternate;
+  }
+
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-6px); }
+  }
+
+  .toast-content { flex: 1; }
+
+  .toast-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+
+  .toast-msg {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .toast-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .toast-close:hover { color: var(--text); }
+
+  .toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 14px;
+    right: 14px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--card-border);
+    overflow: hidden;
+  }
+
+  .toast-progress-bar {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    animation: shrink 5s linear forwards;
+  }
+
+  @keyframes shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
   .empty-state {
     display: flex;
     flex-direction: column;
@@ -356,8 +442,38 @@
   </div>
 </div>
 
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-icon">🎉</div>
+  <div class="toast-content">
+    <div class="toast-title">વયો જા વયો જા ખચર ખચર</div>
+    <div class="toast-msg">Your shift is done! Time to leave 🚀</div>
+  </div>
+  <button class="toast-close" onclick="hideToast()">✕</button>
+  <div class="toast-progress"><div class="toast-progress-bar"></div></div>
+</div>
+
 <script>
 const TARGET_MINUTES = 8 * 60 + 30; // 8h 30m
+let toastTimeout = null;
+
+function showToast() {
+  const toast = document.getElementById('toast');
+  // Reset progress bar animation
+  const bar = toast.querySelector('.toast-progress-bar');
+  bar.style.animation = 'none';
+  bar.offsetHeight; // trigger reflow
+  bar.style.animation = 'shrink 5s linear forwards';
+
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => hideToast(), 5000);
+}
+
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+  clearTimeout(toastTimeout);
+}
 
 function parseTime(str) {
   str = str.trim();
@@ -553,6 +669,15 @@ function calculate() {
     `;
     punchTimeline.appendChild(div);
   });
+
+  // Show toast if leave time has already passed
+  if (leaveTime !== null && leaveTime < 86400 && nowSec >= leaveTime) {
+    showToast();
+  } else if (percent >= 100) {
+    showToast();
+  } else {
+    hideToast();
+  }
 }
 
 function clearAll() {
@@ -560,6 +685,7 @@ function clearAll() {
   document.getElementById('pieArea').innerHTML = '<div class="empty-state"><span>🥧</span>Pie chart will appear here</div>';
   document.getElementById('statsArea').innerHTML = '<div class="empty-state"><span>📌</span>Stats will appear here</div>';
   document.getElementById('punchCard').style.display = 'none';
+  hideToast();
 }
 </script>
 
